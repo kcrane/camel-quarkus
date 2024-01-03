@@ -24,17 +24,14 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import com.github.dockerjava.api.command.InspectContainerResponse;
+import io.strimzi.test.container.StrimziKafkaContainer;
 import org.apache.camel.quarkus.test.support.kafka.KafkaTestResource;
 import org.apache.camel.util.CollectionHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 public class KafkaSaslTestResource extends KafkaTestResource {
-
     private Path serviceBindingDir;
     private SaslKafkaContainer container;
 
@@ -59,6 +56,7 @@ public class KafkaSaslTestResource extends KafkaTestResource {
         }
 
         container = new SaslKafkaContainer(KAFKA_IMAGE_NAME);
+        container.waitForRunning();
         container.start();
         return CollectionHelper.mapOf(
                 "kafka." + CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, container.getBootstrapServers(),
@@ -78,9 +76,8 @@ public class KafkaSaslTestResource extends KafkaTestResource {
     }
 
     // KafkaContainer does not support SASL OOTB so we need some customizations
-    static final class SaslKafkaContainer extends KafkaContainer {
-
-        SaslKafkaContainer(final DockerImageName dockerImageName) {
+    static final class SaslKafkaContainer extends StrimziKafkaContainer {
+        SaslKafkaContainer(final String dockerImageName) {
             super(dockerImageName);
 
             String protocolMap = "SASL_PLAINTEXT:SASL_PLAINTEXT,BROKER:PLAINTEXT";
@@ -106,9 +103,18 @@ public class KafkaSaslTestResource extends KafkaTestResource {
         protected void configure() {
             super.configure();
 
-            String host = getNetwork() != null ? getNetworkAliases().get(0) : "localhost";
-            withEnv("KAFKA_ADVERTISED_LISTENERS",
-                    String.format("SASL_PLAINTEXT://%s:9093,BROKER://%s:9092", host, host));
+            String protocolMap = "SASL_PLAINTEXT:SASL_PLAINTEXT,BROKER1:PLAINTEXT";
+            Map<String, String> config = Map.ofEntries(
+                    Map.entry("inter.broker.listener.name", "BROKER1"),
+                    Map.entry("listener.security.protocol.map", protocolMap),
+                    Map.entry("zookeeper.sasl.enabled", "false"),
+                    Map.entry("sasl.enabled.mechanisms", "PLAIN"),
+                    Map.entry("sasl.mechanism.inter.broker.protocol", "PLAIN"));
+
+            withEnv("KAFKA_OPTS", "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf");
+            withBrokerId(1);
+            withKafkaConfigurationMap(config);
+            withLogConsumer(frame -> System.out.print(frame.getUtf8String()));
         }
 
         @Override
