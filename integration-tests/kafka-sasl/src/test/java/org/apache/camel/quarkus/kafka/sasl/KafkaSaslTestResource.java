@@ -55,7 +55,7 @@ public class KafkaSaslTestResource extends KafkaTestResource {
             throw new RuntimeException(e);
         }
 
-        container = new SaslKafkaContainer(KAFKA_IMAGE_NAME);
+        container = new SaslKafkaContainer(KAFKA_IMAGE_NAME.toString());
         container.waitForRunning();
         container.start();
         return CollectionHelper.mapOf(
@@ -80,18 +80,12 @@ public class KafkaSaslTestResource extends KafkaTestResource {
         SaslKafkaContainer(final String dockerImageName) {
             super(dockerImageName);
 
-            String protocolMap = "SASL_PLAINTEXT:SASL_PLAINTEXT,BROKER:PLAINTEXT";
-            String listeners = "SASL_PLAINTEXT://0.0.0.0:" + KAFKA_PORT + ",BROKER://0.0.0.0:9092";
-
             withEnv("KAFKA_OPTS", "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf");
             withEnv("KAFKA_LISTENERS", listeners);
             withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", protocolMap);
             withEnv("KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE", "false");
             withEnv("KAFKA_SASL_ENABLED_MECHANISMS", "PLAIN");
             withEnv("ZOOKEEPER_SASL_ENABLED", "false");
-            withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER");
-            withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", "PLAIN");
-            withEmbeddedZookeeper().waitingFor(Wait.forListeningPort());
         }
 
         @Override
