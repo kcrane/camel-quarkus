@@ -79,13 +79,6 @@ public class KafkaSaslTestResource extends KafkaTestResource {
     static final class SaslKafkaContainer extends StrimziKafkaContainer {
         SaslKafkaContainer(final String dockerImageName) {
             super(dockerImageName);
-
-            withEnv("KAFKA_OPTS", "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf");
-            withEnv("KAFKA_LISTENERS", listeners);
-            withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", protocolMap);
-            withEnv("KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE", "false");
-            withEnv("KAFKA_SASL_ENABLED_MECHANISMS", "PLAIN");
-            withEnv("ZOOKEEPER_SASL_ENABLED", "false");
         }
 
         @Override
