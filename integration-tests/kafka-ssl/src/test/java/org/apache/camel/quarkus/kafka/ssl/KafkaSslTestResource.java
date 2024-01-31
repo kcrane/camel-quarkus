@@ -26,11 +26,13 @@ import java.util.stream.Stream;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import io.strimzi.test.container.StrimziKafkaContainer;
 import org.apache.camel.quarkus.test.support.kafka.KafkaTestResource;
-import org.apache.camel.quarkus.test.support.kafka.KafkaTestSupport;
 import org.apache.camel.util.CollectionHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.testcontainers.images.builder.Transferable;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.MountableFile;
 
 public class KafkaSslTestResource extends KafkaTestResource {
     private static final String KAFKA_KEYSTORE_FILE = "kafka-keystore.p12";
@@ -86,6 +88,39 @@ public class KafkaSslTestResource extends KafkaTestResource {
                 FileUtils.deleteDirectory(configDir.toFile());
             } catch (Exception e) {
                 // Ignored
+            }
+        }
+    }
+
+    public static void regenerateCertificatesForDockerHost(
+            Path configDir,
+            String certificateScript,
+            String keyStoreFile,
+            String trustStoreFile) {
+        String dockerHost = DockerClientFactory.instance().dockerHostIpAddress();
+        if (!dockerHost.equals("localhost") && !dockerHost.equals("127.0.0.1")) {
+            // Run certificate generation in a container in case the target platform does not have prerequisites like OpenSSL installed (E.g on Windows)
+            String imageName = ConfigProvider.getConfig().getValue("eclipse-temurin.container.image", String.class);
+            try (GenericContainer<?> container = new GenericContainer<>(imageName)) {
+                container.withCreateContainerCmdModifier(modifier -> {
+                    modifier.withEntrypoint("/bin/bash");
+                    modifier.withStdinOpen(true);
+                });
+                container.setWorkingDirectory("/");
+                container.start();
+
+                String host = container.getHost();
+                container.copyFileToContainer(
+                        MountableFile.forClasspathResource("config/" + certificateScript),
+                        "/" + certificateScript);
+                container.execInContainer("/bin/bash", "/" + certificateScript, host,
+                        "DNS:%s,IP:%s".formatted(host, host));
+                container.copyFileFromContainer("/" + keyStoreFile,
+                        configDir.resolve(keyStoreFile).toString());
+                container.copyFileFromContainer("/" + trustStoreFile,
+                        configDir.resolve(trustStoreFile).toString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
     }
