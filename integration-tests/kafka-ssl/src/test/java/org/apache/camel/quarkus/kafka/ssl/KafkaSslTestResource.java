@@ -26,12 +26,14 @@ import java.util.stream.Stream;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import io.strimzi.test.container.StrimziKafkaContainer;
 import org.apache.camel.quarkus.test.support.kafka.KafkaTestResource;
+import org.apache.camel.quarkus.test.support.kafka.KafkaTestSupport;
 import org.apache.camel.util.CollectionHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.MountableFile;
 
 public class KafkaSslTestResource extends KafkaTestResource {
@@ -60,7 +62,7 @@ public class KafkaSslTestResource extends KafkaTestResource {
             throw new RuntimeException(e);
         }
 
-        KafkaTestSupport.regenerateCertificatesForDockerHost(configDir, KAFKA_CERTIFICATE_SCRIPT, KAFKA_KEYSTORE_FILE,
+        regenerateCertificatesForDockerHost(configDir, KAFKA_CERTIFICATE_SCRIPT, KAFKA_KEYSTORE_FILE,
                 KAFKA_TRUSTSTORE_FILE);
 
         container = new SSLKafkaContainer(KAFKA_IMAGE_NAME);
