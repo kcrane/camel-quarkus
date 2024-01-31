@@ -65,7 +65,7 @@ public class KafkaSslTestResource extends KafkaTestResource {
         regenerateCertificatesForDockerHost(configDir, KAFKA_CERTIFICATE_SCRIPT, KAFKA_KEYSTORE_FILE,
                 KAFKA_TRUSTSTORE_FILE);
 
-        container = new SSLKafkaContainer(KAFKA_IMAGE_NAME);
+        container = new SSLKafkaContainer(KAFKA_IMAGE_NAME.toString());
         container.waitForRunning();
         container.start();
 
