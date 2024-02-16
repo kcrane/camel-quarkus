@@ -18,6 +18,7 @@ package org.apache.camel.quarkus.kafka.oauth.it.container;
 
 import java.io.FileWriter;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.testcontainers.containers.FixedHostPortGenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -29,7 +30,7 @@ import org.testcontainers.utility.MountableFile;
 public class KeycloakContainer extends FixedHostPortGenericContainer<KeycloakContainer> {
 
     public KeycloakContainer() {
-        super("quay.io/keycloak/keycloak:16.1.1");
+	super(ConfigProvider.getConfig().getValue("keycloak.container.image",String.class));
         withExposedPorts(8443);
         withFixedExposedPort(8080, 8080);
         withEnv("KEYCLOAK_USER", "admin");
